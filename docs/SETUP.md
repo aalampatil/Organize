@@ -26,7 +26,7 @@ Use the Expo development client for SDK 57 on a phone/emulator, or `npm run dev:
 
 The API binds to port 4000 and Expo web normally uses port 8081. Check `http://localhost:4000/health` after starting the API. A database error returns 503; a successful connection returns `status: ok`. Health does not claim that email and storage are configured.
 
-No initial root lockfile could be generated in the restricted agent session because several packages were unavailable offline. Run `npm install` with registry access, then commit `package-lock.json`; use `npm ci` afterwards. The committed Expo versions follow SDK 57's published compatibility list. Run `npx expo install --check` from `apps/mobile` after installation.
+The root `package-lock.json` records the installed dependency graph. Use `npm ci` for a repeatable install; use `npm install` when intentionally changing dependencies. `.node-version` selects Node 24. The committed Expo versions follow SDK 57's published compatibility list. Run `npx expo install --check` from `apps/mobile` after dependency changes.
 
 ## Credentials to provide later
 
