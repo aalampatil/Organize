@@ -63,6 +63,7 @@ export function LibraryToolbar({
             <Pressable
               key={entry.label}
               accessibilityRole="button"
+              accessibilityLabel={entry.label}
               accessibilityState={{ selected: kind === entry.value }}
               onPress={() => onKind(entry.value)}
               style={[styles.chip, kind === entry.value && styles.active]}

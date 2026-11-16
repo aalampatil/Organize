@@ -47,6 +47,7 @@ export function Sidebar({
             <Pressable
               key={entry.view}
               accessibilityRole="button"
+              accessibilityLabel={entry.name}
               accessibilityState={{ selected: view === entry.view && !folderId && !selectedTag }}
               onPress={() => onView(entry.view)}
               style={[

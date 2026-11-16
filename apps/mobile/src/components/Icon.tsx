@@ -12,5 +12,15 @@ export function Icon({
   size?: number;
   color?: string;
 }) {
-  return <Feather name={name} size={size} color={color} />;
+  return (
+    <Feather
+      name={name}
+      size={size}
+      color={color}
+      aria-hidden
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    />
+  );
 }

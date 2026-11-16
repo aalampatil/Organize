@@ -42,6 +42,7 @@ export function LibraryFolders({ controller }: { controller: LibraryController }
             </View>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="New folder"
               onPress={() => setFolderEditor({})}
               style={styles.textAction}
             >

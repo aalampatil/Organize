@@ -22,6 +22,7 @@ export function LibraryBottomNav({ controller }: { controller: LibraryController
             <Pressable
               key={tab.value}
               accessibilityRole="button"
+              accessibilityLabel={tab.label}
               accessibilityState={{ selected: view === tab.value }}
               onPress={() => (tab.value === 'account' ? setAccount(true) : changeView(tab.value))}
               style={styles.navItem}
