@@ -65,7 +65,7 @@ scripts/                  Environment setup and separated local commits
 - Run the relevant checks before committing. Keep the lockfile and migration history tracked.
 - Commit documentation, tooling, data model, auth, features, UI, and verification as separate reviewable changes.
 
-Local commits are currently blocked by this agent session's read-only `.git` mount. A regular PowerShell terminal can run `pwsh -File scripts/commit-work.ps1` to create fifteen separate local commit groups; it never pushes. See [commit status](docs/COMMITS.md). No application-code commit is claimed until Git confirms it.
+The initial implementation is saved in fifteen separate local commits, with new commits for follow-up fixes. The user handles pushing. See [commit history](docs/COMMITS.md); `scripts/commit-work.ps1` provides the original group boundaries and never pushes.
 
 ## Scope
 

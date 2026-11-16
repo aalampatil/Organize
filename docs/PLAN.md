@@ -1,6 +1,6 @@
 # Implementation plan
 
-Each coherent change has a separate local commit group; `.git` write restrictions currently prevent the agent from creating those commits. The user handles pushing. See [commit status](COMMITS.md).
+The fifteen initial implementation groups have been committed locally after full access was restored. Follow-up fixes receive their own commits. The user handles pushing. See [commit status](COMMITS.md).
 
 | Phase                                             | Implementation      | Verification                                                                               |
 | ------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
@@ -22,7 +22,7 @@ Each coherent change has a separate local commit group; `.git` write restriction
 - Run Fastify HTTP integration against Docker PostgreSQL.
 - Exercise Mailtrap OTP delivery, Cloudinary upload/download/delete, and PDF extraction with real files.
 - Verify Android/iOS behavior and then production Neon/Resend settings when credentials are provided.
-- Create each local commit after repository write access is restored; no push by the agent.
+- Keep subsequent fixes and verification updates in separate local commits; no push by the agent.
 
 ## Verification approach
 

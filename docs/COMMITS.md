@@ -1,29 +1,29 @@
 # Change log and commit boundaries
 
-The documentation baseline is committed as `cc82c99` by the user. This session currently mounts `.git` read-only; `git add` fails with `Unable to create .../.git/index.lock: Permission denied`. Remote publishing does not remove this local restriction. No commit or push is claimed until Git confirms it.
+The user committed the documentation baseline as `cc82c99`. Full local access was restored on November 16, 2026, and the fifteen implementation groups below have now been committed successfully. Follow-up validation fixes receive new commits. Nothing is pushed by the agent.
 
-The latest user instruction is to create local commits only; the user will push. Remote GitHub write attempts were rejected with `403 Resource not accessible by integration`; no remote commit was created. The normal PowerShell command below can create all pending local groups without pushing:
+The latest user instruction is to create local commits only; the user will push. The implementation was saved with this script, which stages explicit paths, skips unchanged groups, stops on Git errors, and never pushes:
 
 ```powershell
 pwsh -File scripts/commit-work.ps1
 ```
 
-Pending coherent changes are grouped separately:
+Completed initial implementation commits, in creation order:
 
-1. `chore: scaffold Expo and Node TypeScript workspaces`
-2. `feat: add shared Zod request and response contracts`
-3. `feat: add Drizzle schema and PostgreSQL search migration`
-4. `feat: implement email OTP and revocable sessions`
-5. `feat: implement owner-scoped nested folders`
-6. `feat: add notes tags favorites trash and indexed retrieval`
-7. `feat: add private Cloudinary files and bounded text extraction`
-8. `feat: assemble authenticated API and graceful server lifecycle`
-9. `feat: add Expo design tokens and reusable UI components`
-10. `feat: add typed API transport and secure session storage`
-11. `feat: add email sign-in and isolated sample workspace`
-12. `feat: add folder management and note editor`
-13. `feat: connect responsive library search and file management`
-14. `test: cover authentication ownership search and file lifecycle`
-15. `docs: document setup API verification and local commit handoff`
+1. `94337f6` — scaffold Expo and Node TypeScript workspaces
+2. `f27c15e` — shared Zod request and response contracts
+3. `651e37c` — Drizzle schema and PostgreSQL search migration
+4. `fd21410` — email OTP and revocable sessions
+5. `c255ac9` — owner-scoped nested folders
+6. `78601f6` — notes, tags, favorites, trash, and indexed retrieval
+7. `ec5628f` — private Cloudinary files and bounded text extraction
+8. `c37eff6` — authenticated API and graceful server lifecycle
+9. `efe3404` — Expo design tokens and reusable UI components
+10. `5ca50f7` — typed API transport and secure session storage
+11. `6097b4a` — email sign-in and isolated sample workspace
+12. `1e09458` — folder management and note editor
+13. `5083ff3` — responsive library search and file management
+14. `7c50315` — authentication, ownership, search, and file lifecycle tests
+15. `3ea1737` — setup, API, verification, and local commit documentation
 
-Dependency downloads and Docker are restricted as well. Cached packages enabled isolated PostgreSQL service tests, but not a full app install. The latest local commit attempt still failed at `.git/index.lock`; see [verification](VERIFICATION.md) for evidence and limits.
+The earlier `.git` sandbox failure is resolved. Full dependency installation and Docker verification are now being resumed. See [verification](VERIFICATION.md) for current evidence and `git log --oneline` for follow-up commits.
