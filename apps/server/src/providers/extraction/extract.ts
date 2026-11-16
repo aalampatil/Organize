@@ -1,4 +1,4 @@
-import { Worker } from 'node:worker_threads';
+import { fork } from 'node:child_process';
 import { extname } from 'node:path';
 import { z } from 'zod';
 
@@ -15,26 +15,32 @@ export async function extractText(
 ): Promise<Extraction> {
   if (mimeType === 'application/pdf') {
     return new Promise((resolve) => {
-      const worker = new Worker(new URL('./pdf.worker.mjs', import.meta.url), {
-        workerData: data,
-        execArgv: [],
-        resourceLimits: { maxOldGenerationSizeMb: 128, maxYoungGenerationSizeMb: 32 },
+      // Native PDF dependencies can crash on corrupt inputs. A process boundary
+      // keeps those failures outside the API, including on Windows.
+      const worker = fork(new URL('./pdf.worker.mjs', import.meta.url), {
+        execArgv: ['--max-old-space-size=128'],
+        serialization: 'advanced',
+        stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+        windowsHide: true,
       });
       let settled = false;
-      const finish = (result: Extraction) => {
+      const finish = (result: Extraction, terminate = false) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        void worker.terminate();
+        if (terminate) worker.kill();
         resolve(result);
       };
-      const timer = setTimeout(() => finish({ text: '', status: 'failed' }), 10_000);
+      const timer = setTimeout(() => finish({ text: '', status: 'failed' }, true), 10_000);
       worker.on('message', (message: unknown) => {
         const result = workerResult.safeParse(message);
         finish(result.success ? result.data : { text: '', status: 'failed' });
       });
       worker.on('error', () => finish({ text: '', status: 'failed' }));
       worker.on('exit', () => finish({ text: '', status: 'failed' }));
+      worker.send(data, (error) => {
+        if (error) finish({ text: '', status: 'failed' }, true);
+      });
     });
   }
   if (mimeType.startsWith('text/') || textExtensions.has(extname(filename).toLowerCase())) {

@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { detectMimeType, filenameSchema } from '../src/modules/files/files.validation.js';
+import { extractText } from '../src/providers/extraction/extract.js';
+import { textPdf } from './helpers/pdf.js';
 
 test('filenames discard directories and control characters', () => {
   assert.equal(filenameSchema.parse('C:\\private\\report.txt'), 'report.txt');
@@ -27,4 +29,24 @@ test('image magic bytes override a false MIME declaration', () => {
     detectMimeType(Buffer.from('content'), '<unsafe>', 'unknown.bin'),
     'application/octet-stream',
   );
+});
+
+test('the isolated PDF worker extracts searchable text from a real PDF', async () => {
+  const result = await extractText(
+    textPdf('A turquoise lighthouse worth finding again'),
+    'notes.pdf',
+    'application/pdf',
+  );
+  assert.equal(result.status, 'ready');
+  assert.match(result.text, /turquoise lighthouse/);
+});
+
+test('unreadable PDFs retain a failed extraction status instead of crashing the API', async () => {
+  const result = await extractText(
+    Buffer.from('%PDF-1.7\ninvalid contents'),
+    'broken.pdf',
+    'application/pdf',
+  );
+  assert.equal(result.status, 'failed');
+  assert.equal(result.text, '');
 });
