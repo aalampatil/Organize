@@ -18,11 +18,10 @@ The client never connects directly to PostgreSQL, receives a Cloudinary secret, 
 - `otp_challenges`: email, keyed code hash, expiry, failed attempts, and resend timestamp.
 - `sessions`: user, token hash, expiry, and creation timestamp.
 - `folders`: owner, parent folder, name, color, timestamps. Parent traversal is checked before moves; the database preserves owner relationships.
-- `items`: owner, note/file kind, title, note body, extracted text, folder, favorite, trash timestamp, and timestamps.
-- `files`: item, Cloudinary public ID, resource type, original filename, MIME type, bytes, extraction status.
-- `tags` and `item_tags`: per-user normalized tags and item associations.
+- `items`: owner, note/file kind, title, note body, extracted text, folder, favorite, trash timestamp, and timestamps. File rows also contain the private Cloudinary ID, original filename, MIME type, bytes, and extraction status; note rows leave these nullable fields empty.
+- Tags are normalized, deduplicated `text[]` values on each item. A GIN index supports filtering, and the owner-scoped tag endpoint derives facets from active items. There is no separate mutable tag identity in this personal-library model.
 
-Use PostgreSQL full-text search with weighted title/filename/body/tag content and a GIN index. Maintain the search document transactionally whenever content or tags change. Parameterize all search input. Add substring matching for filenames and partial terms; cap page sizes and keep stable ordering.
+Use PostgreSQL full-text search with weighted title/filename/body/tag content and a GIN index. A trigger maintains the search document whenever content or tags change. A second GIN index uses `pg_trgm` for literal partial matches. Parameterize all search input, cap page sizes, and keep stable ordering. Count and page queries share a repeatable-read snapshot.
 
 ## Authentication
 

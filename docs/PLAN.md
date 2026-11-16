@@ -1,17 +1,28 @@
 # Implementation plan
 
-Each phase is committed independently. Smaller fixes and follow-up verification receive their own commits. Status reflects verified work rather than intended work.
+Each coherent change has a separate local commit group; `.git` write restrictions currently prevent the agent from creating those commits. The user handles pushing. See [commit status](COMMITS.md).
 
-- [x] Document requirements, architecture, repository boundaries, and commit policy.
-- [ ] Establish workspace tooling, strict TypeScript, formatting, environment templates, and Docker PostgreSQL.
-- [ ] Add shared contracts and versioned Drizzle data model/search migrations.
-- [ ] Implement email providers, OTP authentication, and revocable sessions.
-- [ ] Implement owner-scoped folders, notes, tags, search, favorites, and trash.
-- [ ] Implement private Cloudinary uploads, bounded extraction, and authorized downloads.
-- [ ] Build Expo design system, session flow, and responsive library.
-- [ ] Connect notes, files, folders, filters, and retrieval flows.
-- [ ] Run type checks, meaningful security/API/database tests, and an Expo bundle check.
-- [ ] Finalize setup instructions, test evidence, limitations, and credential handoff.
+| Phase                                             | Implementation      | Verification                                                                               |
+| ------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| Product docs, architecture, plan                  | Written before code | Baseline committed by user                                                                 |
+| Workspaces, TypeScript, Docker, environment setup | Implemented         | Setup script executed; full dependency install/Docker blocked                              |
+| Shared Zod contracts                              | Implemented         | Validation tests and strict core typecheck pass                                            |
+| Drizzle schema, search indexes, migration         | Implemented         | PostgreSQL migration/search executed through PGlite                                        |
+| Email OTP and sessions                            | Implemented         | Expiry, attempts, concurrency, replay, revocation tests pass; live email pending           |
+| Folders, notes, tags, favorites, trash            | Implemented         | Ownership, cycles, nesting depth, index updates, restore tests pass                        |
+| Cloudinary files and extraction                   | Implemented         | Text/lifecycle/compensation tests pass with fake storage; real transfer/PDF worker pending |
+| Expo interface and sample workspace               | Implemented         | Syntax/local imports checked; full bundle/native-device checks pending                     |
+| HTTP integration and CI                           | Added               | Docker/API suite not executed in this session                                              |
+| Setup, API, security, credential handoff          | Documented          | See verification evidence                                                                  |
+
+## Remaining checks
+
+- Install the full dependency graph, generate and commit the root npm lockfile.
+- Run the complete TypeScript checks and Expo compatibility/bundle checks.
+- Run Fastify HTTP integration against Docker PostgreSQL.
+- Exercise Mailtrap OTP delivery, Cloudinary upload/download/delete, and PDF extraction with real files.
+- Verify Android/iOS behavior and then production Neon/Resend settings when credentials are provided.
+- Create each local commit after repository write access is restored; no push by the agent.
 
 ## Verification approach
 

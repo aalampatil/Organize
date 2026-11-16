@@ -4,18 +4,32 @@ A personal library for notes, PDFs, images, documents, and anything worth findin
 
 ## Project status
 
-Documentation and implementation plan come first. See [the implementation plan](docs/PLAN.md) for progress, [architecture](docs/ARCHITECTURE.md) for boundaries, and [setup](docs/SETUP.md) for local services and credentials. Each completed, coherent change receives its own conventional commit.
+The Expo client and Node API are implemented, with a sample workspace available from the sign-in screen. Credentials and final runtime checks remain pending. Documentation was written before application code. See [the implementation plan](docs/PLAN.md), [verification results](docs/VERIFICATION.md), [architecture](docs/ARCHITECTURE.md), and [setup](docs/SETUP.md).
+
+## Get started
+
+Use Node.js 24 LTS and Docker Desktop. From the repository root:
+
+```sh
+npm install
+npm run setup
+npm run db:up
+npm run db:migrate
+npm run dev:api
+```
+
+In a second terminal, run `npm run dev:mobile` for Expo or `npm run dev:web` for the browser. Fill in Mailtrap and Cloudinary values in `apps/server/.env` for real sign-in and uploads. The sample workspace works without these credentials. See [setup](docs/SETUP.md) for device URLs, Neon, Resend, and test commands.
 
 ## Stack
 
-| Layer | Technology |
-| --- | --- |
-| Client | Expo SDK 57, React Native, TypeScript |
-| API | Node.js, TypeScript, Fastify |
-| Database | PostgreSQL and Drizzle; Docker locally, Neon in production |
-| Files | Cloudinary, private authenticated assets |
-| Authentication | Email and one-time code; revocable opaque sessions |
-| Email | Mailtrap SMTP in development, Resend in production |
+| Layer          | Technology                                                 |
+| -------------- | ---------------------------------------------------------- |
+| Client         | Expo SDK 57, React Native, TypeScript                      |
+| API            | Node.js, TypeScript, Fastify, Zod                          |
+| Database       | PostgreSQL and Drizzle; Docker locally, Neon in production |
+| Files          | Cloudinary, private authenticated assets                   |
+| Authentication | Email and one-time code; revocable opaque sessions         |
+| Email          | Mailtrap SMTP in development, Resend in production         |
 
 ## Repository map
 
@@ -39,6 +53,7 @@ apps/
 packages/
   contracts/              Shared request validation and response types
 docs/                     Requirements, architecture, API, setup, progress
+scripts/                  Environment setup and separated local commits
 ```
 
 ## Working agreements
@@ -49,6 +64,8 @@ docs/                     Requirements, architecture, API, setup, progress
 - Never commit credentials, OTPs, session tokens, uploads, or local database data.
 - Run the relevant checks before committing. Keep the lockfile and migration history tracked.
 - Commit documentation, tooling, data model, auth, features, UI, and verification as separate reviewable changes.
+
+Local commits are currently blocked by this agent session's read-only `.git` mount. A regular PowerShell terminal can run `pwsh -File scripts/commit-work.ps1` to create fifteen separate local commit groups; it never pushes. See [commit status](docs/COMMITS.md). No application-code commit is claimed until Git confirms it.
 
 ## Scope
 
