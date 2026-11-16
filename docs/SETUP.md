@@ -53,7 +53,7 @@ Set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` accordingly, then restart Expo. 
 
 ## PostgreSQL and migrations
 
-`npm run db:up` starts PostgreSQL 17 on loopback port 5432 with a named Docker volume. `npm run db:down` stops it without deleting the volume. The API does not apply migrations automatically.
+`npm run db:up` starts PostgreSQL 17 on loopback port 15432 with a named Docker volume. The test service uses 15433. These project-specific host ports avoid colliding with other local databases; `POSTGRES_PORT` and `TEST_POSTGRES_PORT` can override the Docker mappings if the matching connection URLs are also updated. `npm run db:down` stops it without deleting the volume. The API does not apply migrations automatically.
 
 Versioned SQL lives in `apps/server/drizzle`. The migration runner serializes execution, checks previously applied checksums, and applies pending files atomically. Create a new migration to change a deployed schema. Drizzle's schema powers typed queries and `npm run db:studio`; keep it in sync with reviewed SQL migrations. PostgreSQL must support the `pg_trgm` extension.
 
@@ -75,7 +75,7 @@ npm run test:db:up
 npm run test:integration
 ```
 
-The server example sets `TEST_DATABASE_URL` to the disposable `organize_test` database on port 5433. The integration harness refuses database names that do not end in `_test` and deletes only its own fixtures. CI uses a PostgreSQL service and runs the same API suite. See [verification evidence](VERIFICATION.md) for checks actually executed in this session.
+The server example sets `TEST_DATABASE_URL` to the disposable `organize_test` database on port 15433. The integration harness refuses database names that do not end in `_test` and deletes only its own fixtures. CI uses a PostgreSQL service and runs the same API suite. See [verification evidence](VERIFICATION.md) for checks actually executed in this session.
 
 ## Local commits
 
