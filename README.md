@@ -1,17 +1,32 @@
 # Organize
 
-A personal library for notes, PDFs, images, documents, and anything worth finding again. Built for iOS, Android, and web with a search-first Expo interface.
+A search-first personal library for notes, PDFs, images, documents, and other files. Save information in nested folders, add tags, and find it again by title, filename, keyword, or supported file content. Built for iOS, Android, and web.
+
+![Organize desktop library with nested folders, notes, tags, and files](docs/images/desktop.png)
+
+[Mobile preview](docs/images/mobile.png) · [Setup](docs/SETUP.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
 ## Project status
 
-The Expo client and Node API are implemented, with a sample workspace available from the sign-in screen. Credentials and final runtime checks remain pending. Documentation was written before application code. See [the implementation plan](docs/PLAN.md), [verification results](docs/VERIFICATION.md), [architecture](docs/ARCHITECTURE.md), and [setup](docs/SETUP.md).
+The client and API are implemented and locally verified: 23 unit/service/PDF tests, 6 Docker PostgreSQL API tests, and 2 browser flows pass. Full TypeScript checks, Expo SDK 57 compatibility, and the web export also pass. Live provider checks and native-device testing remain pending. Documentation was written before application code; changes are saved in focused local commits.
+
+The sign-in screen includes a clearly labeled sample workspace for trying the interface without credentials. Screenshots use synthetic data. See [implementation progress](docs/PLAN.md) and [verification evidence](docs/VERIFICATION.md) for the exact scope.
+
+## What you can do
+
+- Sign in with an email code and a revocable session.
+- Create nested folders and write or edit plain-text notes.
+- Upload files to private Cloudinary storage and open authorized downloads.
+- Search titles, filenames, tags, notes, and extracted text from supported PDFs and text files.
+- Filter by type, folder, tag, or favorite; move items to Trash and restore them.
+- Use a responsive library on phones, tablets, and desktop browsers.
 
 ## Get started
 
 Use Node.js 24 LTS and Docker Desktop. From the repository root:
 
 ```sh
-npm install
+npm ci
 npm run setup
 npm run db:up
 npm run db:migrate
@@ -56,7 +71,19 @@ docs/                     Requirements, architecture, API, setup, progress
 scripts/                  Environment setup and separated local commits
 ```
 
-## Working agreements
+## Development and verification
+
+```sh
+npm run check
+npm run test:db:up
+npm run test:integration
+npx --no-install playwright install chromium --only-shell
+npm run test:browser
+```
+
+The browser checks use an isolated API and test providers with Docker PostgreSQL. They do not send real email or upload to Cloudinary. See the [contributing guide](CONTRIBUTING.md) for the complete development and review workflow.
+
+### Working agreements
 
 - Keep routes, business logic, database queries, and UI separate.
 - Keep components small and hooks focused. Use descriptive names and strict TypeScript.
@@ -70,3 +97,22 @@ The initial implementation is saved in fifteen separate local commits, with new 
 ## Scope
 
 Email OTP sign-in; nested folders; editable notes; file uploads; tags; favorites; trash and restore; global search across titles, filenames, note bodies, extracted PDF/text content, and tags. See [requirements](docs/REQUIREMENTS.md) for acceptance criteria and explicit limits.
+
+## Documentation
+
+- [Local setup and credentials](docs/SETUP.md)
+- [Architecture and data model](docs/ARCHITECTURE.md)
+- [API contract](docs/API.md)
+- [Technical security notes](docs/SECURITY.md)
+- [Verification results](docs/VERIFICATION.md)
+- [Implementation plan and commit history](docs/PLAN.md)
+
+## Contributing and community
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, code structure, tests, and pull request guidance. Follow the [Code of Conduct](CODE_OF_CONDUCT.md). Use the [bug report or feature request forms](https://github.com/aalampatil/Organize/issues/new/choose) for public issues and the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) when proposing changes.
+
+Report vulnerabilities privately using the [security policy](SECURITY.md).
+
+## License
+
+Organize is available under the [MIT license](LICENSE).
