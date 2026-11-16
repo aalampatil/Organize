@@ -1,29 +1,41 @@
 # Verification evidence
 
-## Executed in the restricted Windows session
+Verified locally on Windows with Node.js 24.22.3, TypeScript 6.0.3, Expo SDK 57.0.33, React Native 0.86.3, Drizzle 0.45.2, and Docker PostgreSQL 17.
 
-| Check                                               | Result                                                                                                         |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Shared Zod, hashing, filename, MIME, wildcard tests | 13 passed                                                                                                      |
-| PostgreSQL service tests using PGlite               | 8 passed                                                                                                       |
-| Combined test result                                | **21 passed, 0 failed, 0 skipped**                                                                             |
-| Core dependency-aware strict TypeScript check       | Passed for contracts, environment, schema/connection/migrations, auth, folders, library, and upload validation |
-| Source syntax and local import scan                 | 70 TypeScript files passed; no syntax or missing local import errors                                           |
-| PowerShell commit script parsing                    | Passed                                                                                                         |
-| Environment setup script                            | Executed; ignored env files created and random secret generated without printing it                            |
+## Completed checks
 
-The PostgreSQL tests execute the actual SQL migration with `pg_trgm`, Drizzle queries, OTP locking and attempt persistence, concurrent code consumption, session revocation, owner isolation, folder cycles/depth, partial/full-text/tag search, index updates, trash/restore, private file lifecycle, and cleanup after metadata failure. Cloudinary and email are injected test doubles; these tests do not call provider services.
+| Check                               | Result                                                                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace dependency installation   | Completed; root lockfile retains registry integrity metadata                                                                     |
+| `npm ci --dry-run --ignore-scripts` | Passed                                                                                                                           |
+| Full strict TypeScript checks       | Passed for mobile, server, and shared contracts                                                                                  |
+| `npm test`                          | 23 passed: validation/security, PostgreSQL service behavior, and real PDF extraction                                             |
+| `npm run test:integration`          | 6 passed against Docker PostgreSQL through Fastify and node-postgres                                                             |
+| Browser flows                       | 2 passed: desktop with the real API/database, and a mobile-sized preview                                                         |
+| Expo SDK compatibility              | `expo install --check` reports dependencies up to date                                                                           |
+| Expo web export                     | Passed; approximately 1.1 MB JS and one 56 KB Feather font asset                                                                 |
+| Development database migration      | Applied successfully                                                                                                             |
+| Running local preview               | Expo at localhost:8081 opens the sample library without page errors; API health at localhost:4000 reports the database connected |
+| Repository community files          | Issue forms parsed successfully and 29 local community-document links were checked                                               |
+| Docker services                     | Healthy on loopback ports 15432 and 15433                                                                                        |
+| Environment setup                   | Ignored env files created with a random secret; credentials were not printed                                                     |
+| Local commits                       | Initial implementation and subsequent fixes saved in separate commits; nothing pushed                                            |
 
-Because network access prevented standard installation, temporary tooling under ignored `.tmp/` read public packages from the existing local npm cache. Cached archive integrity was checked before extraction. The service tests used Drizzle 0.45.2, PGlite 0.4.3, and Zod 4.6.7. The focused compiler check used cached TypeScript 5.9.3; the project targets TypeScript 6.0.3. A partial client check against available React Native 0.86.3 and SDK 57 declarations reported four unresolved imports, all for unavailable DocumentPicker/SecureStore packages. This isolated verification does not substitute for installing the declared workspace dependencies and running the full checks.
+## What the tests exercise
 
-## Pending or blocked
+The service and HTTP suites cover OTP expiry, cooldowns, failed-attempt persistence, concurrent single-use verification, token hashing, session revocation, owner isolation, folder cycles and depth limits, database ownership constraints, full-text/partial/tag search, transactional index updates, favorites, trash/restore, authorized downloads, permanent deletion, and upload compensation after metadata failure.
 
-- Standard `npm install`: registry access denied; several required packages are unavailable offline. No root lockfile was fabricated.
-- Full workspace TypeScript check and Expo web bundle: blocked by missing packages, including SDK 57 DocumentPicker/SecureStore and the required Metro runtime patch.
-- Docker: access to the Docker engine pipe is denied. Full Fastify/HTTP/node-postgres integration tests are written but were not executed here.
-- Live Mailtrap/Resend, Cloudinary, Neon TLS, and PDF parser smoke checks: credentials/dependency access pending.
-- Native Android/iOS and browser interaction testing: not executed; no visual or native-device pass is claimed.
-- Local Git commit: `git add -- packages/contracts` fails with `Unable to create .../.git/index.lock: Permission denied` because this session mounts `.git` read-only.
-- GitHub API write attempts: returned 403; no remote tree/commit/ref change was made. The latest instruction leaves all pushing to the user.
+The PDF tests create a valid PDF, extract its text through the real parser, and verify that malformed input fails without crashing the API. Extraction runs in a child process with a V8 heap budget and a timeout to contain native parser failures.
 
-Run the documented [setup and checks](SETUP.md) after restoring package/Docker access. The CI workflow runs type checks, tests, HTTP integration, formatting, and a web export in an environment with dependency access; CI has not yet run for these uncommitted changes.
+The desktop browser flow signs in by email code, creates a folder and nested subfolder, saves a tagged note, verifies global content search reaches the API without a folder restriction, favorites the note, uploads and searches a text file, and trashes/restores the note. The mobile-sized flow checks sample-note creation, search, account navigation, and horizontal overflow. Both flows finish without page errors. Screenshots are in `docs/images`.
+
+Browser and HTTP tests inject email/storage providers and use a disposable PostgreSQL database. They do not send real email or transfer files to Cloudinary. The standard unit/service suite also runs PostgreSQL semantics through PGlite.
+
+## Remaining verification
+
+- Real Mailtrap/Resend delivery, Cloudinary upload/download/delete, and Neon TLS connections require account credentials.
+- Android/iOS emulator and physical-device testing has not been executed. A mobile-sized browser check is not a native-device test.
+- GitHub Actions will run after the user pushes the committed changes; local execution does not claim a CI result.
+- The dependency audit has no high or critical findings after updating Nodemailer. Seven moderate findings remain in the Expo fingerprint/Drizzle Kit toolchain; the audit's forced fixes suggest incompatible downgrades. The requested Expo 57 stack is retained.
+
+See [setup](SETUP.md) for commands to reproduce the checks and [SECURITY.md](../SECURITY.md) for private vulnerability reporting.

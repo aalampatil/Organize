@@ -26,4 +26,6 @@ Completed initial implementation commits, in creation order:
 14. `7c50315` — authentication, ownership, search, and file lifecycle tests
 15. `3ea1737` — setup, API, verification, and local commit documentation
 
-The earlier `.git` sandbox failure is resolved. Full dependency installation and Docker verification are now being resumed. See [verification](VERIFICATION.md) for current evidence and `git log --oneline` for follow-up commits.
+The earlier `.git` sandbox failure is resolved. Dependencies, Docker PostgreSQL, the API, PDF extraction, and browser flows are verified. Follow-up commits cover database port isolation, the lockfile, safe error handling, parser process isolation, Metro resolution, bundle size, accessibility, browser testing, and community documentation. See [verification](VERIFICATION.md) for evidence and `git log --oneline` for the complete history.
+
+The repository's GitHub About description was updated successfully through authenticated repository metadata access. Code and community files remain in local commits for the user to push.

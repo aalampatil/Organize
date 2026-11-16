@@ -81,7 +81,7 @@ npx --no-install playwright install chromium --only-shell
 npm run test:browser
 ```
 
-The browser checks use an isolated API and test providers with Docker PostgreSQL. They do not send real email or upload to Cloudinary. See the [contributing guide](CONTRIBUTING.md) for the complete development and review workflow.
+Stop the development API before browser verification; the suite uses ports 4000 and 8087. The browser checks use an isolated API and test providers with Docker PostgreSQL. They do not send real email or upload to Cloudinary. See the [contributing guide](CONTRIBUTING.md) for the complete development and review workflow.
 
 ### Working agreements
 

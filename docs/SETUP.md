@@ -7,7 +7,7 @@ Use Node.js 24 LTS (24.3 or newer), npm workspaces, Docker Desktop, and Expo SDK
 From the repository root:
 
 ```sh
-npm install
+npm ci
 npm run setup
 npm run db:up
 npm run db:migrate
@@ -77,9 +77,18 @@ npm run test:integration
 
 The server example sets `TEST_DATABASE_URL` to the disposable `organize_test` database on port 15433. The integration harness refuses database names that do not end in `_test` and deletes only its own fixtures. CI uses a PostgreSQL service and runs the same API suite. See [verification evidence](VERIFICATION.md) for checks actually executed in this session.
 
+For browser verification, install the matching browser once and run the exported application against the test API:
+
+```sh
+npx --no-install playwright install chromium --only-shell
+npm run test:browser
+```
+
+This builds the web app with a local API URL, uses ports 4000 and 8087, and exercises desktop and mobile-sized flows against the disposable database. Email and storage are test providers; no external messages or uploads occur. Screenshots are written under ignored `.tmp/screenshots`. The regular development API must be stopped while the browser suite owns port 4000.
+
 ## Local commits
 
-The user handles pushing. If the agent session still protects `.git`, run this from a normal PowerShell terminal to create separate local commits:
+The initial implementation and follow-up changes are committed locally. The user handles pushing. The original group script remains available for reviewing or recreating commit boundaries in a fresh checkout with uncommitted implementation files:
 
 ```powershell
 pwsh -File scripts/commit-work.ps1
