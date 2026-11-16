@@ -1,6 +1,8 @@
 {
   "name": "organize",
   "version": "0.1.0",
+  "description": "A search-first personal notes and file organizer for iOS, Android, and web, built with Expo 57, TypeScript, PostgreSQL, and Cloudinary.",
+  "license": "MIT",
   "private": true,
   "workspaces": [
     "apps/*",
