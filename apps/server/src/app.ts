@@ -4,7 +4,7 @@ import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import { sql } from 'drizzle-orm';
-import { ZodError } from 'zod';
+import { z, ZodError } from 'zod';
 import type { Environment } from './config/env.js';
 import type { Database } from './db/connection.js';
 import { AppError } from './lib/errors.js';
@@ -16,6 +16,11 @@ import { registerLibraryRoutes } from './modules/library/library.routes.js';
 import { registerFileRoutes } from './modules/files/files.routes.js';
 import { createEmailGateway, type EmailGateway } from './providers/email.js';
 import { createStorageGateway, type StorageGateway } from './providers/storage.js';
+
+const httpErrorSchema = z.object({
+  statusCode: z.number().int().min(400).max(599).optional(),
+  code: z.string().optional(),
+});
 
 export async function buildApp(
   env: Environment,
@@ -56,23 +61,28 @@ export async function buildApp(
       return reply
         .code(error.statusCode)
         .send({ error: { code: error.code, message: error.message } });
-    if (error.statusCode === 429)
+    const metadata = httpErrorSchema.safeParse(error);
+    const { statusCode, code } = metadata.success ? metadata.data : {};
+    if (statusCode === 429)
       return reply.code(429).send({
         error: { code: 'RATE_LIMITED', message: 'Too many requests. Please wait and try again.' },
       });
-    if (error.statusCode === 413 || error.code === 'FST_REQ_FILE_TOO_LARGE')
+    if (statusCode === 413 || code === 'FST_REQ_FILE_TOO_LARGE')
       return reply.code(413).send({
         error: {
           code: 'FILE_TOO_LARGE',
           message: `Files must be smaller than ${Math.floor(env.MAX_UPLOAD_BYTES / 1048576)} MB.`,
         },
       });
-    if (error.statusCode && error.statusCode < 500)
+    if (statusCode && statusCode < 500)
       return reply
-        .code(error.statusCode)
+        .code(statusCode)
         .send({ error: { code: 'INVALID_REQUEST', message: 'The request is invalid.' } });
     // Log an identifier, never search terms, SQL values, tokens, or provider secrets.
-    request.log.error({ requestId: request.id, errorName: error.name }, 'Request failed');
+    request.log.error(
+      { requestId: request.id, errorName: error instanceof Error ? error.name : 'UnknownError' },
+      'Request failed',
+    );
     return reply.code(500).send({
       error: {
         code: 'INTERNAL_ERROR',
