@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Organize",
+    "slug": "organize",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "organize",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.organize.personal" },
+    "android": { "package": "com.organize.personal" },
+    "web": { "bundler": "metro", "name": "Organize", "themeColor": "#54694C" },
+    "plugins": ["expo-secure-store", "expo-document-picker"]
+  }
+}

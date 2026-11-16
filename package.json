@@ -1,0 +1,35 @@
+{
+  "name": "organize",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24.3.0 <25 || >=26"
+  },
+  "scripts": {
+    "setup": "node scripts/setup-env.mjs",
+    "dev:api": "npm run dev -w @organize/server",
+    "dev:mobile": "npm run start -w @organize/mobile",
+    "dev:web": "npm run web -w @organize/mobile",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w @organize/server",
+    "db:studio": "npm run db:studio -w @organize/server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w @organize/server",
+    "test:integration": "npm run test:integration -w @organize/server",
+    "test:db:up": "docker compose --profile test up -d --wait postgres-test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run typecheck && npm test && npm run format:check",
+    "build:web": "npm run export:web -w @organize/mobile"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "prettier": "3.10.1",
+    "typescript": "~6.0.3"
+  }
+}
