@@ -1,0 +1,28 @@
+name: Feature request
+description: Propose an improvement to organizing or retrieving information.
+title: '[Feature]: '
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Explain the user flow and why the current behavior gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe what the user should be able to do, with an example when useful.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include existing workflows or a simpler approach if relevant.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add sketches or examples without private data.
