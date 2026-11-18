@@ -51,6 +51,20 @@ export const uploadMetadataSchema = z
     tags: tagsSchema.default([]),
   })
   .strict();
+// Device paths, permissions, bookmarks, handles, and file contents stay on the device.
+export const referenceFileSchema = z
+  .object({
+    filename: z
+      .string()
+      .trim()
+      .min(1)
+      .max(255)
+      .regex(/^[^/\\\u0000]+$/, 'Use a filename, not a path'),
+    mimeType: z.string().trim().min(1).max(255),
+    bytes: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  })
+  .strict();
+export const referenceInputSchema = referenceFileSchema.extend(uploadMetadataSchema.shape).strict();
 const queryBoolean = z.enum(['true', 'false']).transform((value) => value === 'true');
 export const libraryQuerySchema = z
   .object({
@@ -90,6 +104,7 @@ export const itemSchema = z.object({
       filename: z.string(),
       mimeType: z.string(),
       bytes: z.number(),
+      source: z.enum(['upload', 'reference']),
       extractionStatus: z.enum(['ready', 'unsupported', 'failed']),
     })
     .nullable(),
@@ -113,6 +128,8 @@ export type ItemUpdate = z.infer<typeof itemUpdateSchema>;
 export type FolderInput = z.infer<typeof folderInputSchema>;
 export type FolderUpdate = z.infer<typeof folderUpdateSchema>;
 export type UploadMetadata = z.infer<typeof uploadMetadataSchema>;
+export type ReferenceFile = z.infer<typeof referenceFileSchema>;
+export type ReferenceInput = z.infer<typeof referenceInputSchema>;
 export type LibraryQuery = z.infer<typeof libraryQuerySchema>;
 export type Folder = z.infer<typeof folderSchema>;
 export type Item = z.infer<typeof itemSchema>;

@@ -5,7 +5,12 @@ import { PGlite } from '@electric-sql/pglite';
 import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { eq } from 'drizzle-orm';
-import { libraryQuerySchema, noteInputSchema, folderInputSchema } from '@organize/contracts';
+import {
+  libraryQuerySchema,
+  noteInputSchema,
+  folderInputSchema,
+  referenceInputSchema,
+} from '@organize/contracts';
 import type { Database } from '../../src/db/connection.js';
 import * as schema from '../../src/db/schema.js';
 import { createAuthService } from '../../src/modules/auth/auth.service.js';
@@ -40,11 +45,98 @@ before(async () => {
   await postgres.exec(
     await readFile(new URL('../../drizzle/0001_initial.sql', import.meta.url), 'utf8'),
   );
+  await postgres.exec(
+    await readFile(new URL('../../drizzle/0002_file_references.sql', import.meta.url), 'utf8'),
+  );
   owner = await signIn('owner@example.com');
   other = await signIn('other@example.com');
 });
 after(async () => {
   await postgres.close();
+});
+
+test('references organize and reconnect metadata without storage access or owner leaks', async () => {
+  const folder = await folders.create(
+    owner.user.id,
+    folderInputSchema.parse({ name: 'Conference 2020' }),
+  );
+  const reference = await library.createReference(
+    owner.user.id,
+    referenceInputSchema.parse({
+      filename: 'talk-from-2018.pdf',
+      mimeType: 'application/pdf',
+      bytes: 0,
+      folderId: folder.id,
+      tags: ['conference'],
+    }),
+  );
+  assert.equal(reference.file?.source, 'reference');
+  assert.equal(reference.file?.bytes, 0);
+  assert.equal(reference.title, 'talk-from-2018.pdf');
+  assert.equal(reference.folderId, folder.id);
+  const [row] = await db.select().from(schema.items).where(eq(schema.items.id, reference.id));
+  assert.equal(row?.storageId, null);
+  assert.equal(row?.extractedText, '');
+  const updatedFile = { filename: 'renamed-talk.pdf', mimeType: 'application/pdf', bytes: 1234 };
+  await assert.rejects(
+    library.reconnectReference(other.user.id, reference.id, updatedFile),
+    /could not be found/,
+  );
+  await assert.rejects(
+    library.createReference(
+      other.user.id,
+      referenceInputSchema.parse({ ...updatedFile, folderId: folder.id }),
+    ),
+    /your library/,
+  );
+  const stats = await repository.stats(owner.user.id);
+  assert.equal(stats.bytes, 0);
+  const reconnected = await library.reconnectReference(owner.user.id, reference.id, updatedFile);
+  assert.equal(reconnected.title, reference.title);
+  assert.deepEqual(reconnected.tags, reference.tags);
+  assert.equal(reconnected.folderId, folder.id);
+  assert.equal(
+    (
+      await repository.list(
+        owner.user.id,
+        libraryQuerySchema.parse({ q: 'renamed-talk', folderId: folder.id, tag: 'conference' }),
+      )
+    ).total,
+    1,
+  );
+  assert.equal(
+    (await repository.list(other.user.id, libraryQuerySchema.parse({ q: 'renamed-talk' }))).total,
+    0,
+  );
+  const files = createFileService(db, {
+    async upload() {
+      throw new Error('References must never upload');
+    },
+    download() {
+      throw new Error('References must never download');
+    },
+    async remove() {
+      throw new Error('References must never delete the original');
+    },
+  });
+  await assert.rejects(files.download(owner.user.id, reference.id), /could not be found/);
+  await library.update(owner.user.id, reference.id, { trashed: true });
+  await assert.rejects(
+    library.reconnectReference(owner.user.id, reference.id, updatedFile),
+    /Restore/,
+  );
+  await library.update(owner.user.id, reference.id, { trashed: false });
+  await library.update(owner.user.id, reference.id, { trashed: true });
+  await files.remove(owner.user.id, reference.id);
+  await assert.rejects(library.get(owner.user.id, reference.id), /could not be found/);
+  const note = await library.createNote(
+    owner.user.id,
+    noteInputSchema.parse({ title: 'Not a file' }),
+  );
+  await assert.rejects(
+    library.reconnectReference(owner.user.id, note.id, updatedFile),
+    /Only linked/,
+  );
 });
 
 test('OTP consumption is atomic and failed attempts persist', async () => {

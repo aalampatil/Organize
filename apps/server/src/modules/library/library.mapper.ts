@@ -20,6 +20,7 @@ export function toItem(row: Omit<ItemRow, 'searchText' | 'searchVector' | 'stora
             filename: row.filename!,
             mimeType: row.mimeType!,
             bytes: row.bytes!,
+            source: row.fileSource,
             extractionStatus: row.extractionStatus!,
           }
         : null,

@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import type { ItemUpdate, NoteInput } from '@organize/contracts';
+import type { ItemUpdate, NoteInput, ReferenceFile, ReferenceInput } from '@organize/contracts';
 import type { Database } from '../../db/connection.js';
 import { items } from '../../db/schema.js';
 import { AppError, notFound } from '../../lib/errors.js';
@@ -24,6 +24,43 @@ export function createLibraryService(db: Database) {
           .values({ ...input, userId, kind: 'note' })
           .returning();
         if (!item) throw new Error('Note could not be created');
+        return toItem(item);
+      }),
+    createReference: (userId: string, input: ReferenceInput) =>
+      db.transaction(async (tx) => {
+        await assertFolder(tx, userId, input.folderId);
+        const [item] = await tx
+          .insert(items)
+          .values({
+            ...input,
+            title: input.title ?? input.filename.slice(0, 180),
+            userId,
+            kind: 'file',
+            fileSource: 'reference',
+            extractionStatus: 'unsupported',
+          })
+          .returning();
+        if (!item) throw new Error('File reference could not be created');
+        return toItem(item);
+      }),
+    reconnectReference: (userId: string, id: string, input: ReferenceFile) =>
+      db.transaction(async (tx) => {
+        const [current] = await tx
+          .select()
+          .from(items)
+          .where(and(eq(items.id, id), eq(items.userId, userId)))
+          .for('update');
+        if (!current) throw notFound();
+        if (current.kind !== 'file' || current.fileSource !== 'reference')
+          throw new AppError(400, 'Only linked files can be reconnected.', 'NOT_A_REFERENCE');
+        if (current.trashedAt)
+          throw new AppError(400, 'Restore this item before reconnecting it.', 'ITEM_IN_TRASH');
+        const [item] = await tx
+          .update(items)
+          .set({ ...input, updatedAt: new Date() })
+          .where(and(eq(items.id, id), eq(items.userId, userId)))
+          .returning();
+        if (!item) throw notFound();
         return toItem(item);
       }),
     update: (userId: string, id: string, input: ItemUpdate) =>

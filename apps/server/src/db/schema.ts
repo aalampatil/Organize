@@ -91,6 +91,7 @@ export const items = pgTable(
     mimeType: text('mime_type'),
     bytes: bigint({ mode: 'number' }),
     storageId: text('storage_id'),
+    fileSource: text('file_source').$type<'upload' | 'reference'>().notNull().default('upload'),
     extractionStatus: text('extraction_status').$type<'ready' | 'unsupported' | 'failed'>(),
     searchText: text('search_text').notNull().default(''),
     searchVector: vector('search_vector')
@@ -112,8 +113,9 @@ export const items = pgTable(
     check('items_kind_check', sql`${table.kind} in ('note', 'file')`),
     check(
       'items_file_metadata_check',
-      sql`${table.kind} = 'note' or (${table.filename} is not null and ${table.mimeType} is not null and ${table.bytes} > 0 and ${table.storageId} is not null and ${table.extractionStatus} is not null)`,
+      sql`${table.kind} = 'note' or (${table.filename} is not null and ${table.mimeType} is not null and ${table.bytes} is not null and ${table.extractionStatus} is not null and ((${table.fileSource} = 'upload' and ${table.bytes} > 0 and ${table.storageId} is not null) or (${table.fileSource} = 'reference' and ${table.bytes} >= 0 and ${table.storageId} is null)))`,
     ),
+    check('items_file_source_check', sql`${table.fileSource} in ('upload', 'reference')`),
   ],
 );
 export type ItemRow = typeof items.$inferSelect;

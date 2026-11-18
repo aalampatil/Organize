@@ -4,6 +4,8 @@ import {
   itemUpdateSchema,
   libraryQuerySchema,
   noteInputSchema,
+  referenceInputSchema,
+  referenceFileSchema,
 } from '@organize/contracts';
 import type { Database } from '../../db/connection.js';
 import { createLibraryRepository } from './library.repository.js';
@@ -30,6 +32,20 @@ export function registerLibraryRoutes(app: FastifyInstance, db: Database) {
       request.user.id,
       idSchema.parse(request.params.id),
       itemUpdateSchema.parse(request.body),
+    ),
+  );
+  app.post('/v1/file-references', async (request, reply) =>
+    reply
+      .code(201)
+      .send(
+        await service.createReference(request.user.id, referenceInputSchema.parse(request.body)),
+      ),
+  );
+  app.patch<{ Params: { id: string } }>('/v1/file-references/:id', (request) =>
+    service.reconnectReference(
+      request.user.id,
+      idSchema.parse(request.params.id),
+      referenceFileSchema.parse(request.body),
     ),
   );
 }

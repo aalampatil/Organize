@@ -97,7 +97,9 @@ export function createLibraryRepository(db: Database) {
           notes: sql<number>`count(*) filter (where kind = 'note')`.mapWith(Number),
           files: sql<number>`count(*) filter (where kind = 'file')`.mapWith(Number),
           favorites: sql<number>`count(*) filter (where favorite)`.mapWith(Number),
-          bytes: sql<number>`coalesce(sum(bytes), 0)`.mapWith(Number),
+          bytes: sql<number>`coalesce(sum(bytes) filter (where file_source = 'upload'), 0)`.mapWith(
+            Number,
+          ),
         })
         .from(items)
         .where(and(eq(items.userId, userId), isNull(items.trashedAt)));
