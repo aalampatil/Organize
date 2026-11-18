@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useWindowDimensions } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import type { Folder } from '@organize/contracts';
@@ -8,6 +9,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useSession } from '../auth/SessionProvider';
 import { useLibrary, useLibraryActions } from './useLibrary';
 import type { LibraryView } from './Sidebar';
+import { discardDeviceFile, pickDeviceFile, saveDeviceFile } from '../files/device-files';
 
 export function useLibraryController() {
   const { width } = useWindowDimensions();
@@ -15,7 +17,10 @@ export function useLibraryController() {
   const available = desktop ? width - 330 : width - 40;
   const columns = available > 980 ? 3 : available > 540 ? 2 : 1;
   const folderColumns = available > 900 ? 4 : available > 540 ? 3 : 2;
-  const { preview } = useSession();
+  const { preview, user, api } = useSession();
+  const queryClient = useQueryClient();
+  const [linking, setLinking] = useState(false);
+  const linkInProgress = useRef(false);
   const [view, setView] = useState<LibraryView>('all');
   const [folderId, setFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -89,6 +94,35 @@ export function useLibraryController() {
       setError(errorMessage(error));
     }
   };
+  const linkFile = async () => {
+    if (linkInProgress.current) return;
+    linkInProgress.current = true;
+    setLinking(true);
+    setError(null);
+    try {
+      if (preview || !user) throw new Error('Sign in to link files from your device.');
+      const selected = await pickDeviceFile();
+      if (!selected) return;
+      try {
+        const item = await api.createReference({
+          ...selected.metadata,
+          folderId: view === 'folders' ? folderId : null,
+          tags: [],
+        });
+        setEditor({ id: item.id });
+        await saveDeviceFile(user.id, item.id, selected);
+        await queryClient.invalidateQueries({ queryKey: ['device-file', user.id, item.id] });
+      } finally {
+        await discardDeviceFile(selected);
+        await queryClient.invalidateQueries({ queryKey: ['library'] });
+      }
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      linkInProgress.current = false;
+      setLinking(false);
+    }
+  };
   const favorite = async (id: string, value: boolean) => {
     setError(null);
     try {
@@ -160,6 +194,8 @@ export function useLibraryController() {
     selectTag,
     refresh,
     upload,
+    linkFile,
+    linking,
     favorite,
     heading,
     description,

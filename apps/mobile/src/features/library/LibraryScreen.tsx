@@ -117,7 +117,8 @@ export function LibraryScreen() {
               </View>
               {library.stats.data && (
                 <Text style={styles.footerText}>
-                  {library.stats.data.total} items · {formatBytes(library.stats.data.bytes)}
+                  {library.stats.data.total} items · {formatBytes(library.stats.data.bytes)}{' '}
+                  uploaded
                 </Text>
               )}
             </View>

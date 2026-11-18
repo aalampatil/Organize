@@ -3,6 +3,7 @@ import type { FolderInput, FolderUpdate, ItemUpdate, NoteInput } from '@organize
 import type { DocumentPickerAsset } from 'expo-document-picker';
 import type { Filters } from '../../lib/api';
 import { useSession } from '../auth/SessionProvider';
+import { removeDeviceFile } from '../files/device-files';
 
 export function useLibrary(filters: Filters) {
   const { api } = useSession();
@@ -18,7 +19,7 @@ export function useLibrary(filters: Filters) {
   return { items, folders, tags, stats };
 }
 export function useLibraryActions() {
-  const { api } = useSession();
+  const { api, user } = useSession();
   const client = useQueryClient();
   const refresh = () => client.invalidateQueries({ queryKey: ['library'] });
   return {
@@ -45,7 +46,14 @@ export function useLibraryActions() {
       mutationFn: (id: string) => api.deleteFolder(id),
       onSuccess: refresh,
     }),
-    deleteItem: useMutation({ mutationFn: (id: string) => api.deleteItem(id), onSuccess: refresh }),
+    deleteItem: useMutation({
+      mutationFn: async ({ id, reference }: { id: string; reference: boolean }) => {
+        await api.deleteItem(id);
+        if (user && reference) await removeDeviceFile(user.id, id);
+        client.removeQueries({ queryKey: ['device-file', user?.id, id] });
+      },
+      onSettled: refresh,
+    }),
     download: useMutation({ mutationFn: (id: string) => api.download(id) }),
   };
 }

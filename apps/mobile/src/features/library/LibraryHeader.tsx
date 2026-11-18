@@ -6,8 +6,19 @@ import { colors } from '../../theme/tokens';
 import type { LibraryController } from './useLibraryController';
 import { styles } from './library.styles';
 export function LibraryHeader({ controller }: { controller: LibraryController }) {
-  const { desktop, preview, heading, description, view, actions, upload, setEditor, setAccount } =
-    controller;
+  const {
+    desktop,
+    preview,
+    heading,
+    description,
+    view,
+    actions,
+    upload,
+    linkFile,
+    linking,
+    setEditor,
+    setAccount,
+  } = controller;
   return (
     <>
       {' '}
@@ -54,12 +65,21 @@ export function LibraryHeader({ controller }: { controller: LibraryController })
         {view !== 'trash' && (
           <View style={styles.addButtons}>
             <Button
-              title="Upload"
+              title="Upload file"
               icon="upload"
               variant="secondary"
-              disabled={actions.upload.isPending}
+              disabled={actions.upload.isPending || linking}
               onPress={() => {
                 void upload();
+              }}
+            />
+            <Button
+              title="Link existing file"
+              icon="link"
+              variant="secondary"
+              disabled={actions.upload.isPending || linking}
+              onPress={() => {
+                void linkFile();
               }}
             />
             <Button title="New note" icon="plus" onPress={() => setEditor({})} />

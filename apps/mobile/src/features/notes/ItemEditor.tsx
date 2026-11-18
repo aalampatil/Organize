@@ -12,6 +12,7 @@ import { errorMessage } from '../../lib/errors';
 import { useSession } from '../auth/SessionProvider';
 import { useLibraryActions } from '../library/useLibrary';
 import { FolderPicker } from '../folders/FolderPicker';
+import { ReferenceAccess } from '../files/ReferenceAccess';
 
 export function ItemSheet({
   id,
@@ -164,23 +165,36 @@ function ItemEditor({
           <Text style={styles.caption}>
             {formatBytes(item!.file!.bytes)} · {item!.file!.mimeType}
           </Text>
-          <Text style={styles.caption}>
-            {item!.file!.extractionStatus === 'ready'
-              ? 'Text is searchable. PDF indexing covers the first 50 pages and up to 200,000 characters.'
-              : item!.file!.extractionStatus === 'failed'
-                ? 'Text could not be extracted. You can still find this file by title, filename, and tags.'
-                : 'Find this file by title, filename, and tags. Image OCR and this format’s contents are not indexed.'}
-          </Text>
-          {!item?.trashedAt && (
-            <Button
-              title="Open / download file"
-              icon="download"
-              variant="secondary"
-              busy={actions.download.isPending}
-              onPress={() => {
-                void download();
-              }}
-            />
+          {item!.file!.source === 'reference' ? (
+            item?.trashedAt ? (
+              <Text style={styles.caption}>
+                Linked file reference. Restoring or deleting this reference leaves the original file
+                untouched.
+              </Text>
+            ) : (
+              <ReferenceAccess item={item!} />
+            )
+          ) : (
+            <>
+              <Text style={styles.caption}>
+                {item!.file!.extractionStatus === 'ready'
+                  ? 'Text is searchable. PDF indexing covers the first 50 pages and up to 200,000 characters.'
+                  : item!.file!.extractionStatus === 'failed'
+                    ? 'Text could not be extracted. You can still find this file by title, filename, and tags.'
+                    : 'Find this file by title, filename, and tags. Image OCR and this format’s contents are not indexed.'}
+              </Text>
+              {!item?.trashedAt && (
+                <Button
+                  title="Open / download file"
+                  icon="download"
+                  variant="secondary"
+                  busy={actions.download.isPending}
+                  onPress={() => {
+                    void download();
+                  }}
+                />
+              )}
+            </>
           )}
         </View>
       )}
@@ -206,14 +220,21 @@ function ItemEditor({
       ) : confirm === 'delete' ? (
         <View style={{ gap: 10 }}>
           <Text style={styles.caption}>
-            Permanently delete this item and its file? This cannot be undone.
+            {item?.file?.source === 'reference'
+              ? 'Delete this reference permanently? The original file on your device will remain untouched.'
+              : 'Permanently delete this item and its file? This cannot be undone.'}
           </Text>
           <Button
             title="Delete permanently"
             variant="danger"
             busy={busy}
             onPress={() => {
-              void run(() => actions.deleteItem.mutateAsync(item!.id));
+              void run(() =>
+                actions.deleteItem.mutateAsync({
+                  id: item!.id,
+                  reference: item?.file?.source === 'reference',
+                }),
+              );
             }}
           />
           <Button title="Keep in Trash" variant="ghost" onPress={() => setConfirm(null)} />

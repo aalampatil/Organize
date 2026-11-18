@@ -3,6 +3,7 @@ import type { Item } from '@organize/contracts';
 import { Icon } from '../../components/Icon';
 import { colors } from '../../theme/tokens';
 import { formatBytes, formatDate } from '../../lib/format';
+import { ReferenceQuickOpen } from '../files/ReferenceAccess';
 
 export function ItemCard({
   item,
@@ -61,7 +62,13 @@ export function ItemCard({
             />
           </View>
           <Text style={styles.kind}>
-            {isNote ? 'NOTE' : item.file?.mimeType === 'application/pdf' ? 'PDF' : 'FILE'}
+            {isNote
+              ? 'NOTE'
+              : item.file?.source === 'reference'
+                ? 'LINKED FILE'
+                : item.file?.mimeType === 'application/pdf'
+                  ? 'PDF'
+                  : 'FILE'}
           </Text>
         </View>
         <Text numberOfLines={2} style={styles.title}>
@@ -85,6 +92,9 @@ export function ItemCard({
           </View>
         )}
       </Pressable>
+      {item.file?.source === 'reference' && !item.trashedAt && (
+        <ReferenceQuickOpen item={item} onDetails={onOpen} />
+      )}
       <View style={styles.footer}>
         <View style={styles.location}>
           <Icon name="folder" size={12} color={colors.muted} />

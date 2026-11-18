@@ -45,7 +45,13 @@ export const styles = StyleSheet.create({
   eyebrow: { fontSize: 8, letterSpacing: 2, color: '#98A28F', fontWeight: '700', marginBottom: 5 },
   title: { fontSize: 35, fontWeight: '600', letterSpacing: -1.3, color: colors.ink },
   subtitle: { fontSize: 13, color: colors.muted, lineHeight: 21 },
-  addButtons: { flexDirection: 'row', gap: 10 },
+  addButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: 10,
+    flexShrink: 1,
+  },
   section: { gap: 19 },
   sectionTitle: {
     flexDirection: 'row',
