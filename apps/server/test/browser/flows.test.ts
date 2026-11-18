@@ -1,4 +1,4 @@
-import { after, before, test } from 'node:test';
+import { after, afterEach, before, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
@@ -25,6 +25,8 @@ const publicDirectory = resolve(root, 'apps/mobile/dist');
 const screenshotDirectory = resolve(root, '.tmp/screenshots');
 const webUrl = 'http://localhost:8087';
 const email = `browser-${randomUUID()}@example.com`;
+const referenceEmail = `references-${randomUUID()}@example.com`;
+const uploadedAssets: string[] = [];
 const inbox = new Map<string, string>();
 const { db, pool } = createDatabase(testUrl);
 let api: FastifyInstance | undefined;
@@ -71,6 +73,12 @@ async function serveExport(): Promise<Server> {
 before(async () => {
   await applyMigrations(pool);
   await mkdir(screenshotDirectory, { recursive: true });
+  web = await serveExport();
+  browser = await chromium.launch({ headless: true });
+});
+beforeEach(async () => {
+  // Each flow gets an independent API instance and rate-limit window, just as it gets
+  // its own browser profile. Keep the production rate limits intact.
   const env = envSchema.parse({
     DATABASE_URL: testUrl,
     NODE_ENV: 'test',
@@ -85,6 +93,7 @@ before(async () => {
     },
     storage: {
       async upload(userId, filename) {
+        uploadedAssets.push(filename);
         return { storageId: `browser/${userId}/${filename}` };
       },
       download() {
@@ -98,8 +107,10 @@ before(async () => {
   });
   // The exported app's public API URL is localhost:4000 for local verification.
   await api.listen({ host: 'localhost', port: 4000 });
-  web = await serveExport();
-  browser = await chromium.launch({ headless: true });
+});
+afterEach(async () => {
+  await api?.close();
+  api = undefined;
 });
 after(async () => {
   await browser?.close();
@@ -109,6 +120,7 @@ after(async () => {
       web!.close((error) => (error ? reject(error) : resolve())),
     );
   await db.delete(users).where(eq(users.email, email));
+  await db.delete(users).where(eq(users.email, referenceEmail));
   await pool.end();
 });
 function collectErrors(page: Page) {
@@ -177,7 +189,7 @@ test(
       await page.getByRole('button', { name: 'Clear search', exact: true }).click();
 
       const chooser = page.waitForEvent('filechooser');
-      await page.getByRole('button', { name: 'Upload', exact: true }).click();
+      await page.getByRole('button', { name: 'Upload file', exact: true }).click();
       await (
         await chooser
       ).setFiles({
@@ -255,6 +267,208 @@ test(
         .screenshot({ path: resolve(screenshotDirectory, 'mobile-failure.png'), fullPage: true })
         .catch(() => {});
       console.error('Mobile page errors:', errors);
+      throw error;
+    } finally {
+      await context.close();
+    }
+  },
+);
+
+test(
+  'linked files persist handles, open current contents, reconnect, and leave originals intact',
+  { timeout: 120_000 },
+  async () => {
+    const context = await browser!.newContext({ viewport: { width: 1440, height: 1080 } });
+    const page = await context.newPage();
+    const errors = collectErrors(page);
+    await api!.inject({
+      method: 'POST',
+      url: '/v1/auth/request-code',
+      payload: { email: referenceEmail },
+    });
+    const sessionResponse = await api!.inject({
+      method: 'POST',
+      url: '/v1/auth/verify-code',
+      payload: { email: referenceEmail, code: inbox.get(referenceEmail) },
+    });
+    assert.equal(sessionResponse.statusCode, 200);
+    const session = sessionResponse.json();
+    await context.addInitScript(`
+      sessionStorage.setItem('organize.session', ${JSON.stringify(JSON.stringify(session))});
+      window.showOpenFilePicker = async () => {
+        if (window.cancelNextPick) { window.cancelNextPick = false; throw new DOMException('Canceled', 'AbortError'); }
+        const root = await navigator.storage.getDirectory();
+        const handle = await root.getFileHandle(window.nextFilename || 'conference-2018.txt', { create: true });
+        const writer = await handle.createWritable();
+        await writer.write('Private local conference notes'); await writer.close();
+        return [handle];
+      };
+    `);
+    const uploadedBefore = uploadedAssets.length;
+    const posts: string[] = [];
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url().endsWith('/v1/file-references'))
+        posts.push(request.postData() ?? '');
+    });
+    try {
+      await page.goto(webUrl);
+      await page.getByRole('heading', { name: 'Your library.' }).waitFor();
+      await page.evaluate('window.cancelNextPick = true');
+      await page.getByRole('button', { name: 'Link existing file', exact: true }).click();
+      await page.getByRole('button', { name: 'Link existing file', exact: true }).isEnabled();
+      assert.equal(posts.length, 0);
+      await page.getByRole('button', { name: 'New folder', exact: true }).click();
+      await page.getByRole('textbox', { name: 'Folder name' }).fill('Conference 2024');
+      await page
+        .getByRole('dialog')
+        .getByRole('button', { name: 'Create folder', exact: true })
+        .click();
+      await page.getByRole('button', { name: 'Open Conference 2024', exact: true }).click();
+      await page.getByRole('button', { name: 'Link existing file', exact: true }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByText('Linked file ·', { exact: false }).waitFor();
+      await dialog.getByRole('textbox', { name: 'Title', exact: true }).fill('Conference reading');
+      await dialog.getByRole('textbox', { name: 'Tags · separate with commas' }).fill('conference');
+      await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
+      assert.equal(posts.length, 1);
+      assert.deepEqual(Object.keys(JSON.parse(posts[0]!)).sort(), [
+        'bytes',
+        'filename',
+        'folderId',
+        'mimeType',
+        'tags',
+      ]);
+      assert.equal(posts[0]!.includes('Private local'), false);
+      assert.equal(uploadedAssets.length, uploadedBefore);
+      await page.reload();
+      await page.getByRole('button', { name: 'Open Conference reading', exact: true }).waitFor();
+      // Exercise the permission-denied path without replacing the stored real handle.
+      await page.evaluate(`
+        window.originalRequestPermission = FileSystemHandle.prototype.requestPermission;
+        FileSystemHandle.prototype.requestPermission = async () => 'denied';
+      `);
+      await page.getByRole('button', { name: 'Open local preview', exact: true }).click();
+      await page.getByText('File access was not allowed.', { exact: false }).waitFor();
+      await page.evaluate(
+        'FileSystemHandle.prototype.requestPermission = window.originalRequestPermission',
+      );
+      await page.evaluate(`(async () => {
+        const root = await navigator.storage.getDirectory();
+        const file = await root.getFileHandle('conference-2018.txt');
+        const writer = await file.createWritable(); await writer.write('Updated local contents'); await writer.close();
+      })()`);
+      const popupEvent = page.waitForEvent('popup');
+      await page.getByRole('button', { name: 'Open local preview', exact: true }).click();
+      const popup = await popupEvent;
+      await popup
+        .frameLocator('iframe')
+        .getByText('Updated local contents', { exact: false })
+        .waitFor();
+      await popup.close();
+
+      await page.evaluate(
+        `(async () => { const root = await navigator.storage.getDirectory(); await root.removeEntry('conference-2018.txt'); })()`,
+      );
+      await page.reload();
+      await page.getByRole('button', { name: 'Open Conference reading', exact: true }).click();
+      await dialog.getByText('File unavailable here.', { exact: false }).waitFor();
+      await page.evaluate("window.nextFilename = 'conference-renamed.txt'");
+      // A failed metadata update restores the prior local record and leaves organization intact.
+      await page.route('**/v1/file-references/*', (route) =>
+        route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: { message: 'Reconnect test failure' } }),
+        }),
+      );
+      await dialog.getByRole('button', { name: 'Reconnect file', exact: true }).click();
+      await dialog.getByText('Reconnect test failure', { exact: true }).waitFor();
+      await dialog.getByText('conference-2018.txt', { exact: true }).waitFor();
+      await page.unroute('**/v1/file-references/*');
+      await dialog.getByRole('button', { name: 'Reconnect file', exact: true }).click();
+      await dialog.getByText('conference-renamed.txt', { exact: true }).waitFor();
+      assert.equal(
+        await dialog.getByRole('textbox', { name: 'Title', exact: true }).inputValue(),
+        'Conference reading',
+      );
+      assert.equal(
+        await dialog.getByRole('textbox', { name: 'Tags · separate with commas' }).inputValue(),
+        'conference',
+      );
+      await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
+
+      // A second browser profile has metadata, but cannot access this device's saved handle.
+      const otherContext = await browser!.newContext();
+      const otherPage = await otherContext.newPage();
+      await otherContext.addInitScript(
+        `sessionStorage.setItem('organize.session', ${JSON.stringify(JSON.stringify(session))});`,
+      );
+      await otherPage.goto(webUrl);
+      await otherPage.getByRole('button', { name: 'Open Conference reading', exact: true }).click();
+      await otherPage
+        .getByRole('dialog')
+        .getByText('File unavailable here.', { exact: false })
+        .waitFor();
+      await otherContext.close();
+
+      await page.getByRole('textbox', { name: 'Search your library' }).fill('conference-renamed');
+      await page.getByRole('button', { name: 'Open Conference reading', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Move to Trash', exact: true }).click();
+      await dialog.waitFor({ state: 'hidden' });
+      await page.getByRole('button', { name: 'Trash', exact: true }).click();
+      await page.getByRole('button', { name: 'Open Conference reading', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Restore item', exact: true }).click();
+      await dialog.waitFor({ state: 'hidden' });
+      await page.getByRole('button', { name: /^All items/ }).click();
+      await page.getByRole('button', { name: 'Open Conference reading', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Move to Trash', exact: true }).click();
+      await dialog.waitFor({ state: 'hidden' });
+      await page.getByRole('button', { name: 'Trash', exact: true }).click();
+      await page.getByRole('button', { name: 'Open Conference reading', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Delete permanently', exact: true }).click();
+      await dialog
+        .getByText('The original file on your device will remain untouched.', { exact: false })
+        .waitFor();
+      await dialog.getByRole('button', { name: 'Delete permanently', exact: true }).click();
+      await dialog.waitFor({ state: 'hidden' });
+      assert.equal(
+        await page.evaluate(
+          `(async () => { const root = await navigator.storage.getDirectory(); return (await root.getFileHandle('conference-renamed.txt')).getFile().then(f => f.text()); })()`,
+        ),
+        'Private local conference notes',
+      );
+      assert.equal(
+        await page.evaluate(`new Promise((resolve, reject) => {
+        const request = indexedDB.open('organize-device-files', 1);
+        request.onsuccess = () => { const db = request.result; const transaction = db.transaction('references'); const count = transaction.objectStore('references').count(); transaction.oncomplete = () => { resolve(count.result); db.close(); }; };
+        request.onerror = () => reject(request.error);
+      })`),
+        0,
+      );
+      assert.equal(uploadedAssets.length, uploadedBefore);
+
+      await page.getByRole('button', { name: /^All items/ }).click();
+      await page.evaluate('window.showOpenFilePicker = undefined');
+      await page.getByRole('button', { name: 'Link existing file', exact: true }).click();
+      await page
+        .getByText('Linking requires a supported desktop browser', { exact: false })
+        .waitFor();
+      assert.deepEqual(errors, []);
+    } catch (error) {
+      await page
+        .screenshot({
+          path: resolve(screenshotDirectory, 'references-failure.png'),
+          fullPage: true,
+        })
+        .catch(() => {});
+      console.error('Reference page errors:', errors);
+      console.error(
+        'Reference dialog:',
+        await page
+          .getByRole('dialog')
+          .textContent()
+          .catch(() => 'closed'),
+      );
       throw error;
     } finally {
       await context.close();

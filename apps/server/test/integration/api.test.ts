@@ -67,6 +67,96 @@ async function signIn(address: string) {
 function auth(token = ownerToken) {
   return { authorization: `Bearer ${token}` };
 }
+
+test(
+  'reference endpoints store only metadata, enforce ownership, and preserve organization on reconnect',
+  { skip: !enabled },
+  async () => {
+    const input = {
+      filename: 'empty-plan.txt',
+      mimeType: 'text/plain',
+      bytes: 0,
+      tags: ['project'],
+    };
+    assert.equal(
+      (await app.inject({ method: 'POST', url: '/v1/file-references', payload: input })).statusCode,
+      401,
+    );
+    assert.equal(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/v1/file-references',
+          headers: auth(),
+          payload: { ...input, uri: 'file:///private/plan.txt' },
+        })
+      ).statusCode,
+      400,
+    );
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/file-references',
+      headers: auth(),
+      payload: input,
+    });
+    assert.equal(created.statusCode, 201);
+    const item = created.json();
+    assert.equal(item.file.source, 'reference');
+    assert.equal(item.file.bytes, 0);
+    assert.equal(
+      (await app.inject({ url: `/v1/items/${item.id}/download`, headers: auth() })).statusCode,
+      404,
+    );
+    assert.equal(
+      (
+        await app.inject({
+          method: 'PATCH',
+          url: `/v1/file-references/${item.id}`,
+          headers: auth(otherToken),
+          payload: { filename: 'new.txt', mimeType: 'text/plain', bytes: 4 },
+        })
+      ).statusCode,
+      404,
+    );
+    const reconnected = await app.inject({
+      method: 'PATCH',
+      url: `/v1/file-references/${item.id}`,
+      headers: auth(),
+      payload: { filename: 'new-plan.txt', mimeType: 'text/plain', bytes: 4 },
+    });
+    assert.equal(reconnected.statusCode, 200);
+    assert.equal(reconnected.json().title, input.filename);
+    assert.deepEqual(reconnected.json().tags, ['project']);
+    assert.equal(
+      (await app.inject({ url: '/v1/items?q=new-plan', headers: auth() })).json().total,
+      1,
+    );
+    const deletedBefore = deletedAssets.length;
+    await app.inject({
+      method: 'PATCH',
+      url: `/v1/items/${item.id}`,
+      headers: auth(),
+      payload: { trashed: true },
+    });
+    assert.equal(
+      (
+        await app.inject({
+          method: 'PATCH',
+          url: `/v1/file-references/${item.id}`,
+          headers: auth(),
+          payload: { filename: 'new.txt', mimeType: 'text/plain', bytes: 4 },
+        })
+      ).statusCode,
+      400,
+    );
+    assert.equal(
+      (await app.inject({ method: 'DELETE', url: `/v1/items/${item.id}`, headers: auth() }))
+        .statusCode,
+      204,
+    );
+    assert.equal(deletedAssets.length, deletedBefore);
+  },
+);
 before(async () => {
   if (!connection || !url) return;
   await applyMigrations(connection.pool);
