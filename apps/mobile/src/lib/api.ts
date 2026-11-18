@@ -15,10 +15,14 @@ import {
   tagFacetSchema,
   userSchema,
   verifyCodeSchema,
+  referenceInputSchema,
+  referenceFileSchema,
   type FolderInput,
   type FolderUpdate,
   type ItemUpdate,
   type NoteInput,
+  type ReferenceInput,
+  type ReferenceFile,
 } from '@organize/contracts';
 import type { DocumentPickerAsset } from 'expo-document-picker';
 import { Platform } from 'react-native';
@@ -114,6 +118,16 @@ export function createApi(token?: string, onUnauthorized?: () => void) {
     tags: () => request('/v1/tags', z.array(tagFacetSchema)),
     createNote: (input: NoteInput) =>
       request('/v1/notes', itemSchema, { method: 'POST', body: noteInputSchema.parse(input) }),
+    createReference: (input: ReferenceInput) =>
+      request('/v1/file-references', itemSchema, {
+        method: 'POST',
+        body: referenceInputSchema.parse(input),
+      }),
+    reconnectReference: (id: string, input: ReferenceFile) =>
+      request(`/v1/file-references/${id}`, itemSchema, {
+        method: 'PATCH',
+        body: referenceFileSchema.parse(input),
+      }),
     updateItem: (id: string, input: ItemUpdate) =>
       request(`/v1/items/${id}`, itemSchema, {
         method: 'PATCH',

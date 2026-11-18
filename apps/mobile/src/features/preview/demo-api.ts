@@ -185,5 +185,11 @@ export function createDemoApi(): OrganizeApi {
     },
     upload: noFile,
     download: noFile,
+    createReference: async () => {
+      throw new Error('Sign in to link files from your device.');
+    },
+    reconnectReference: async () => {
+      throw new Error('Sign in to reconnect linked files.');
+    },
   };
 }
