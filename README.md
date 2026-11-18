@@ -8,7 +8,7 @@ A search-first personal library for notes, PDFs, images, documents, and other fi
 
 ## Project status
 
-The client and API are implemented and locally verified: 23 unit/service/PDF tests, 6 Docker PostgreSQL API tests, and 2 browser flows pass. Full TypeScript checks, Expo SDK 57 compatibility, and the web export also pass. Live provider checks and native-device testing remain pending. Documentation was written before application code; changes are saved in focused local commits.
+The client and API include uploads and device-local file references. See [verification evidence](docs/VERIFICATION.md) for automated checks and remaining native-device testing. Changes are saved in focused local commits.
 
 The sign-in screen includes a clearly labeled sample workspace for trying the interface without credentials. Screenshots use synthetic data. See [implementation progress](docs/PLAN.md) and [verification evidence](docs/VERIFICATION.md) for the exact scope.
 
@@ -17,6 +17,7 @@ The sign-in screen includes a clearly labeled sample workspace for trying the in
 - Sign in with an email code and a revocable session.
 - Create nested folders and write or edit plain-text notes.
 - Upload files to private Cloudinary storage and open authorized downloads.
+- Link existing device files without uploading their contents; organize references with folders and tags, open originals/local previews, and reconnect missing files. See [platform support and setup](docs/FILE_REFERENCES.md).
 - Search titles, filenames, tags, notes, and extracted text from supported PDFs and text files.
 - Filter by type, folder, tag, or favorite; move items to Trash and restore them.
 - Use a responsive library on phones, tablets, and desktop browsers.
@@ -96,13 +97,14 @@ The initial implementation is saved in fifteen separate local commits, with new 
 
 ## Scope
 
-Email OTP sign-in; nested folders; editable notes; file uploads; tags; favorites; trash and restore; global search across titles, filenames, note bodies, extracted PDF/text content, and tags. See [requirements](docs/REQUIREMENTS.md) for acceptance criteria and explicit limits.
+Email OTP sign-in; nested folders; editable notes; file uploads and local references; tags; favorites; trash and restore; global search across titles, filenames, note bodies, extracted uploaded PDF/text content, and tags. Linked file contents stay on the device and are not indexed. See [requirements](docs/REQUIREMENTS.md) for acceptance criteria and explicit limits.
 
 ## Documentation
 
 - [Local setup and credentials](docs/SETUP.md)
 - [Architecture and data model](docs/ARCHITECTURE.md)
 - [API contract](docs/API.md)
+- [Link existing files and platform support](docs/FILE_REFERENCES.md)
 - [Technical security notes](docs/SECURITY.md)
 - [Verification results](docs/VERIFICATION.md)
 - [Implementation plan and commit history](docs/PLAN.md)

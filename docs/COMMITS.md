@@ -29,3 +29,15 @@ Completed initial implementation commits, in creation order:
 The earlier `.git` sandbox failure is resolved. Dependencies, Docker PostgreSQL, the API, PDF extraction, and browser flows are verified. Follow-up commits cover database port isolation, the lockfile, safe error handling, parser process isolation, Metro resolution, bundle size, accessibility, browser testing, and community documentation. See [verification](VERIFICATION.md) for evidence and `git log --oneline` for the complete history.
 
 The repository's GitHub About description was updated successfully through authenticated repository metadata access. Code and community files remain in local commits for the user to push.
+
+## File references — November 18, 2026
+
+The existing-file enhancement is saved in focused local commits:
+
+1. `8fb38cc` — metadata-only contracts, database migration, owner-scoped create/reconnect endpoints, storage totals, and service/validation checks.
+2. `c4c4dbd` — persistent browser handles, native document permissions/bookmarks, platform adapters, dependencies, and typed API transport.
+3. `6de9533` — upload/link choices, linked labels, context organization, quick access, reconnect/recovery, and original-preserving deletion.
+4. `bc25348` — reference API integration and browser lifecycle, permission denial, reconnect recovery, original preservation, and browser-flow isolation.
+5. Documentation and verification follow in a separate commit; use `git log --oneline` for its hash.
+
+All changes remain local for the user to push. See [file-reference behavior and platform limits](FILE_REFERENCES.md) and [verification evidence](VERIFICATION.md).

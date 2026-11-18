@@ -14,6 +14,7 @@ Find saved information without remembering its folder or save date. Search is th
 6. Search globally by title, filename, text, or tag. Combine search with type, folder, tag, or favorite filters.
 7. Open an item, edit metadata, mark it as a favorite, move it to trash, or restore it.
 8. Sign out and revoke the session.
+9. Choose **Link existing file** to save a local reference without copying/uploading the original. Organize it with folders/tags, open it locally where supported, and reconnect a missing or inaccessible original.
 
 ## Acceptance criteria
 
@@ -24,6 +25,9 @@ Find saved information without remembering its folder or save date. Search is th
 - Notes remain searchable immediately after saving.
 - File content search covers text, Markdown, CSV, JSON, and text-based PDFs. DOCX extraction is included if supported safely; scanned PDFs and image OCR are deferred and described honestly in the UI.
 - Private file access requires a valid session and generates an expiring access URL.
+- References synchronize metadata only. Permissions stay on the device; references are searchable by title, filename, and tags, independent of the original's dates or location.
+- Reconnecting preserves the item's ID, title, folder, tags, and favorite. Deleting a reference leaves the original untouched.
+- Unsupported browsers and Expo Go explain linking limits; native linking requires a development/production build. See [platform behavior](FILE_REFERENCES.md).
 - OTPs expire, have a bounded attempt count and resend cooldown, and are stored only as keyed hashes.
 - Sessions use random bearer tokens, hash-only storage, expiry, and server-side revocation.
 - Secrets stay on the server. The Expo client contains only a public API base URL.
